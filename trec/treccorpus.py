@@ -7,9 +7,9 @@ from os import linesep
 
 import re
 
-# from gensim import utils
+from gensim import utils
 
-from gensim.corpora.textcorpus import TextCorpus
+from gensim.corpora.textcorpus import TextDirectoryCorpus
 from gensim.corpora.dictionary import Dictionary
 
 logger = logging.getLogger(__name__)
@@ -58,73 +58,56 @@ def extract(buffer, start_tag, end_tag, max_pos, noise_prefix):
     return None
 
 
-class TrecCorpus(TextCorpus):
+class TrecCorpus(TextDirectoryCorpus):
 
-    def __init__(self, pname, dictionary=None, metadata=True):
-        # super(TrecCorpus, self).__init__()
-        self.test = True
-        self.pname = pname
-        self.metadata = True
-        if dictionary is None:
-            self.dictionary = Dictionary(self.get_texts())
-        else:
-            self.dictionary = dictionary
+    def __init__(self, input, dictionary=None, metadata=True,
+                 lines_are_documents=False, min_depth=0, max_depth=None, **kwargs):
 
-        self.file_list = [file for file in listdir(self.pname) if isfile(join(self.pname, file))]
-        self.reader = None
-        self.file_pointer = 0
-        super().__init__()
-
-    def open_next_file(self):
-        if self.reader is not None:
-            self.reader.close()
-        if self.file_pointer < len(self.file_list):
-            self.reader = open(self.file_list[self.file_pointer], 'r')
-            self.file_pointer += 1
-        else:
-            self.reader = None
-
-    def read(self, buffer, line_start, collect_match_line, collect_all):
-        sep = ""
-        while True:
-            while True:
-                curr_line = self.reader.readLine()
-                if curr_line is None:
-                    self.open_next_file()
-                else:
-                    if line_start is not None and curr_line.startswith(line_start):
-                        if collect_match_line:
-                            buffer = buffer + sep + curr_line
-                            sep = linesep
-                        return
-
-                    if collect_all:
-                        buffer = buffer + sep + curr_line
-                        sep = linesep
-
-    def trec_doc_parser(self, buffer):
-        # TEXT = "<TEXT>"
-        # TEXT_END = "</TEXT>"
-
-        mark = 0
-        h1 = buffer.find("<TEXT>")
-        if h1 >= 0:
-            h2 = buffer.find("</TEXT>", h1)
-            mark = h1 + len("<TEXT>")
-        return strip_tags(buffer, mark)
+        super(TrecCorpus, self).__init__(input=input,
+                                         dictionary=dictionary,
+                                         metadata=metadata,
+                                         lines_are_documents=lines_are_documents,
+                                         min_depth=min_depth, max_depth=max_depth, **kwargs)
 
     def get_texts(self):
-        if self.reader is None:
-            self.open_next_file()
 
-        doc_buffer = ""
-        self.read(doc_buffer, "<DOC>", collect_match_line=False, collect_all=False)
-        doc_buffer = ""
-        self.read(doc_buffer, "<DOCNO>", collect_match_line=True, collect_all=False)
+        for file in self.getstream():
+            for docno, text in self.parse_file(file):
+                if self.metadata:
+                    yield utils.tokenize(self.parse_text(text), lowercase=True), (docno,)
+                else:
+                    yield utils.tokenize(self.parse_text(text), lowercase=True)
 
-        docno_value = doc_buffer[len("<DOCNO>"): doc_buffer.find("</DOCNO>", len("<DOCNO>"))].strip()
 
-        doc_buffer = ""
-        self.read(doc_buffer, "</DOC>", collect_match_line=False, collect_all=True)
+    def parse_file(self, file):
+        while file is not None:
+            self.read_doc(file, "<DOC>", collect_match_line=False, collect_all=False)
 
-        return self.trec_doc_parser(doc_buffer), docno_value
+            docno = self.read_doc(file, "<DOCNO>", collect_match_line=True, collect_all=False)
+            docno = docno[len("<DOCNO>"): docno.find("</DOCNO>", len("<DOCNO>"))].strip()
+
+            text = self.read_doc(file, "</DOC>", collect_match_line=False, collect_all=True)
+            yield docno, text
+
+    def read_doc(self, file, start_tag, collect_match_line, collect_all):
+        buffer = ""
+        sep = ""
+
+        while file is not None:
+            line = file.readline()
+            if start_tag is not None and line.startswith(start_tag):
+                if collect_match_line:
+                    buffer = buffer + sep + line
+                return buffer
+
+            if collect_all:
+                buffer = buffer + sep + line
+                sep = linesep
+
+    def parse_text(self, orig_text):
+        mark = 0
+        h1 = orig_text.find("<TEXT>")
+        if h1 >= 0:
+            h2 = orig_text.find("</TEXT>", h1)
+            mark = h1 + len("<TEXT>")
+        return strip_tags(orig_text, mark)
