@@ -156,7 +156,7 @@ class TrecCorpus(TextDirectoryCorpus):
                                          lines_are_documents=lines_are_documents,
                                          min_depth=min_depth, max_depth=max_depth, **kwargs)
         self.merge_title = merge_title
-        self.line_feeder = self.getstream()
+        self.line_feeder = None
 
     def get_texts(self):
         """Generate documents from corpus.
@@ -167,6 +167,7 @@ class TrecCorpus(TextDirectoryCorpus):
             Document as sequence of tokens (+ (doc_no, title) if self.metadata)
 
         """
+        self.line_feeder = self.getstream()
         for doc_no, content in self.parse_file():
             text, title = self.parse_content(content)
 
@@ -255,3 +256,25 @@ class TrecCorpus(TextDirectoryCorpus):
                 title = extract(content, start_tag, end_tag, -1, None)
                 break  # only one title will be created
         return text, title
+
+    def getstream(self):
+        """Generate documents from the underlying plain text collection (of one or more files).
+
+        Yields
+        ------
+        str
+            One document (if lines_are_documents - True), otherwise - each file is one document.
+
+        """
+        num_texts = 0
+        for path in self.iter_filepaths():
+            with open(path, 'rt', encoding="utf-8", errors="ignore") as f:
+                if self.lines_are_documents:
+                    for line in f:
+                        yield line.strip()
+                        num_texts += 1
+                else:
+                    yield f.read().strip()
+                    num_texts += 1
+
+        self.length = num_texts
