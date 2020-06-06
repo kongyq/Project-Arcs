@@ -15,10 +15,8 @@ def test_init():
 
 def test_get_doc_list():
 
-    a = "1"
-    if a is "0":
-        print("!!")
-    print(bool(a))
+    a = "051"
+    print(int(a))
 
 
 def test_contains():
