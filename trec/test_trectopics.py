@@ -18,13 +18,15 @@ def test_get_title():
     pname = "f:/Runs/topics/"
     trectopics = TrecTopics(pname)
     trectopics.init()
-    print(trectopics.get_title(51))
-    print(trectopics.get_title(450))
-    print(trectopics.get_narr(51))
-    print(trectopics.get_narr(100))
-    print(trectopics.get_narr(101))
-    print(trectopics.get_narr(450))
-    print(trectopics.get_narr(401))
+    # print(trectopics.get_title(51))
+    # print(trectopics.get_title(450))
+    # print(trectopics.get_narr(51))
+    # print(trectopics.get_narr(100))
+    # print(trectopics.get_narr(101))
+    # print(trectopics.get_narr(450))
+    # print(trectopics.get_narr(401))
+    print(trectopics.get_title(251))
+    print(trectopics.get_narr(251))
 
 
 def test_get_desc():
@@ -36,4 +38,18 @@ def test_get_narr():
 
 
 def test_total_topics():
-    assert False
+
+    from gensim.models import Doc2Vec
+
+    pname = "f:/Runs/topics/"
+    trectopics = TrecTopics(pname)
+    trectopics.init()
+
+    model_fname = "F:/Models/DM_2_doc2vec_trec_d1000_n5_w8_mc20_t12_e10_dm.model"
+
+    d2v = Doc2Vec.load(model_fname)
+    vocab_dict = d2v.wv.vocab
+
+    trectopics.vectorize(vocab_dict=vocab_dict, include_title=True)
+    print(trectopics.get_vector(topic_no=50))
+
