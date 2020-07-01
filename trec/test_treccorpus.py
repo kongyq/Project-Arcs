@@ -76,3 +76,13 @@ def test_parse_text():
     #     print(docno)
     #     # print(next(trecc.get_texts()))
     # print(total)
+
+def test_traverse_all_docs():
+    # pname = "f:/Corpus/TrecData/"
+    pname = "f:/Corpus/trectest/"
+    trecc = TrecCorpus(pname, dictionary={})
+    count = 0
+    for text, docno in trecc.get_texts():
+        count += 1
+        if count % 1000 == 0:
+            print(docno, text)

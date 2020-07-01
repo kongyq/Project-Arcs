@@ -1,12 +1,12 @@
-from os import linesep
+# from os import linesep
 
 import logging
 
 from gensim.corpora import TextDirectoryCorpus
-from gensim.corpora.wikicorpus import tokenize
+from utils import Tokenizer
 
 from scipy.sparse import csr_matrix
-from scipy.special import softmax
+# from scipy.special import softmax
 from sklearn.preprocessing import normalize
 
 logger = logging.getLogger(__name__)
@@ -14,9 +14,12 @@ logger = logging.getLogger(__name__)
 TOKEN_MIN_LEN = 2
 TOKEN_MAX_LEN = 15
 
+EXTRA_STOPWORDS = ["relevant", "document"]
+
 
 class TrecTopics(TextDirectoryCorpus):
     def __init__(self, topics_path, min_depth=0, max_depth=None, metadata=True,
+                 lemmatization=True, use_stop=True,
                  pattern=None, exclude_pattern=None, **kwargs):
         super(TrecTopics, self).__init__(topics_path, dictionary={}, metadata=metadata,
                                          min_depth=min_depth, max_depth=max_depth,
@@ -27,6 +30,10 @@ class TrecTopics(TextDirectoryCorpus):
         self.topics_vecs = None
         self.topic_row_maps = {}
         self.oov = {}
+
+        self.tokenizer = Tokenizer(minimum_len=TOKEN_MIN_LEN, maximum_len=TOKEN_MAX_LEN,
+                                   lowercase=True, output_lemma=lemmatization, use_stopwords=use_stop,
+                                   extra_stopwords=EXTRA_STOPWORDS)
 
     def get_texts(self):
 
@@ -46,14 +53,16 @@ class TrecTopics(TextDirectoryCorpus):
                 if line.startswith("<"):
                     inside_desc = False
                 else:
-                    desc += line + linesep
+                    # desc += line + linesep
+                    desc += line + " "
                     continue
 
             if inside_narr:
                 if line.startswith("<"):
                     inside_narr = False
                 else:
-                    narr += line + linesep
+                    # narr += line + linesep
+                    narr += line + " "
                     continue
 
             if inside_top:
@@ -67,13 +76,11 @@ class TrecTopics(TextDirectoryCorpus):
                     inside_narr = True
                 elif line.startswith("</top>"):
                     inside_top = False
-                    yield int(topic_no), self.tokenize(title), self.tokenize(desc), self.tokenize(narr)
+                    yield int(topic_no), \
+                          self.tokenizer.tokenize(title), self.tokenizer.tokenize(desc), self.tokenizer.tokenize(narr)
                     title = ""
                     desc = ""
                     narr = ""
-
-    def tokenize(self, text):
-        return tokenize(text, TOKEN_MIN_LEN, TOKEN_MAX_LEN, lower=True)
 
     def init(self):
         for topic_no, title, desc, narr in self.get_texts():
@@ -127,7 +134,7 @@ class TrecTopics(TextDirectoryCorpus):
             topic_row.append(len(index_col))
 
         self.topics_vecs = normalize(csr_matrix((freq_val, index_col, topic_row), dtype=int,
-                                              shape=(len(topic_row)-1, vector_length)).toarray(),
+                                                shape=(len(topic_row) - 1, vector_length)).toarray(),
                                      norm=norm, axis=1)
 
         # self.topics_vecs = csr_matrix((freq_val, index_col, topic_row), dtype=int,

@@ -18,15 +18,17 @@ def test_get_title():
     pname = "f:/Runs/topics/"
     trectopics = TrecTopics(pname)
     trectopics.init()
-    # print(trectopics.get_title(51))
-    # print(trectopics.get_title(450))
-    # print(trectopics.get_narr(51))
-    # print(trectopics.get_narr(100))
-    # print(trectopics.get_narr(101))
-    # print(trectopics.get_narr(450))
-    # print(trectopics.get_narr(401))
+    print(trectopics.get_title(51))
+    print(trectopics.get_title(450))
+    print(trectopics.get_narr(51))
+    print(trectopics.get_narr(100))
+    print(trectopics.get_narr(101))
+    print(trectopics.get_narr(450))
+    print(trectopics.get_narr(401))
     print(trectopics.get_title(251))
     print(trectopics.get_narr(251))
+    print(trectopics.get_narr(296))
+    print(trectopics.get_desc(296))
 
 
 def test_get_desc():

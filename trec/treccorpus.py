@@ -4,8 +4,11 @@ import logging
 from os import linesep
 import re
 
+import spacy
 from gensim import utils
 from gensim.corpora.textcorpus import TextDirectoryCorpus
+
+from utils import Tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +161,12 @@ class TrecCorpus(TextDirectoryCorpus):
         self.merge_title = merge_title
         self.line_feeder = None
 
-    def get_texts(self):
+        # self.nlp = spacy.load('en_core_web_sm', disable=["tagger", "parser", "ner"])
+
+        self.tokenizer = Tokenizer(minimum_len=TOKEN_MIN_LEN, maximum_len=TOKEN_MAX_LEN, lowercase=True,
+                                   output_lemma=True, use_stopwords=True)
+
+    def _get_texts(self):
         """Generate documents from corpus.
 
         Yields
@@ -182,9 +190,17 @@ class TrecCorpus(TextDirectoryCorpus):
                 # print("---------------")
                 # print(text)
                 # print("===============")
-                yield tokenize(text, TOKEN_MIN_LEN, TOKEN_MAX_LEN, lower=True), (doc_no, title)
+                yield self.tokenizer.tokenize(text), (doc_no, title)
+                # yield text, (doc_no, title)
+                # yield tokenize(text, TOKEN_MIN_LEN, TOKEN_MAX_LEN, lower=True), (doc_no, title)
             else:
-                yield tokenize(text, TOKEN_MIN_LEN, TOKEN_MAX_LEN, lower=True)
+                yield self.tokenizer.tokenize(text)
+                # yield text
+                # yield tokenize(text, TOKEN_MIN_LEN, TOKEN_MAX_LEN, lower=True)
+
+    def get_texts(self):
+        # return self.tokenizer.tokenize_pipe(self._get_texts())
+        return self._get_texts()
 
     def parse_file(self):
         """parse TREC format data file into doc_no + content
