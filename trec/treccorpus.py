@@ -1,4 +1,5 @@
 import logging
+import csv
 # import multiprocessing
 
 from os import linesep
@@ -122,7 +123,7 @@ class TrecCorpus(TextDirectoryCorpus):
         >>> trec = TrecCorpus(path_to_TREC_disk)  # create word->word_id mapping, ~Xh on full corpus
 
     """
-    def __init__(self, input, dictionary=None, metadata=True, merge_title=True,
+    def __init__(self, input, dictionary=None, merge_title=True, spacy_tokenizer=True,
                  lines_are_documents=True, min_depth=0, max_depth=None, **kwargs):
         """
 
@@ -155,14 +156,14 @@ class TrecCorpus(TextDirectoryCorpus):
         """
         super(TrecCorpus, self).__init__(input=input,
                                          dictionary=dictionary,
-                                         metadata=metadata,
+                                         metadata=True,
                                          lines_are_documents=lines_are_documents,
                                          min_depth=min_depth, max_depth=max_depth, **kwargs)
         self.merge_title = merge_title
         self.line_feeder = None
+        self.spacy_tokenizer = spacy_tokenizer
 
-        # self.nlp = spacy.load('en_core_web_sm', disable=["tagger", "parser", "ner"])
-
+        # if self.spacy_tokenizer:
         self.tokenizer = Tokenizer(minimum_len=TOKEN_MIN_LEN, maximum_len=TOKEN_MAX_LEN, lowercase=True,
                                    output_lemma=True, use_stopwords=True)
 
@@ -180,27 +181,14 @@ class TrecCorpus(TextDirectoryCorpus):
             text, title = self.parse_content(content)
 
             if self.merge_title and title is not None:
-                text = title + " " + text
+                text = title + " " + text.strip()
 
-            if self.metadata:
-                # print(content)
-                # print(self.parse_text(text))
-                # print(extract(content, "<TEXT>", "</TEXT>", max_pos=-1, noise_prefix=["<CENTER>"]))
-                # print(title)
-                # print("---------------")
-                # print(text)
-                # print("===============")
-                yield self.tokenizer.tokenize(text), (doc_no, title)
-                # yield text, (doc_no, title)
-                # yield tokenize(text, TOKEN_MIN_LEN, TOKEN_MAX_LEN, lower=True), (doc_no, title)
-            else:
-                yield self.tokenizer.tokenize(text)
-                # yield text
-                # yield tokenize(text, TOKEN_MIN_LEN, TOKEN_MAX_LEN, lower=True)
+            # yield self.tokenizer.tokenize(text), (doc_no, title)
+            yield text, (doc_no, title)
 
     def get_texts(self):
-        # return self.tokenizer.tokenize_pipe(self._get_texts())
-        return self._get_texts()
+        return self.tokenizer.tokenize_pipe(self._get_texts())
+        # return self._get_texts()
 
     def parse_file(self):
         """parse TREC format data file into doc_no + content
@@ -240,7 +228,7 @@ class TrecCorpus(TextDirectoryCorpus):
 
             if collect_all:
                 buffer = buffer + sep + line
-                sep = linesep
+                sep = " "
 
     def parse_content(self, content):
         """Extract fine text and title from raw content.
@@ -294,3 +282,14 @@ class TrecCorpus(TextDirectoryCorpus):
                     num_texts += 1
 
         self.length = num_texts
+
+    def save_to_file(self, filename):
+        count = 0
+        with open(filename, 'w', buffering=2 ** 10 * 800) as f:
+            for text, (doc_no, title) in self.get_texts():
+                count += 1
+                if count % 1000 == 0:
+                    print(count)
+                if title is None:
+                    title = ''
+                f.write(doc_no+","+title+","+' '.join(text)+"\n")

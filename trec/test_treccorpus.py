@@ -86,3 +86,10 @@ def test_traverse_all_docs():
         count += 1
         if count % 1000 == 0:
             print(docno, text)
+            break
+
+def test_save_to_file():
+    pname = "f:/Corpus/trectest/"
+    trecc = TrecCorpus(pname, dictionary={})
+    sfile = "f:/Corpus/savetest.csv"
+    trecc.save_to_file(sfile)
