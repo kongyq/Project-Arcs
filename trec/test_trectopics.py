@@ -55,3 +55,22 @@ def test_total_topics():
     trectopics.vectorize(vocab_dict=vocab_dict, include_title=True)
     print(trectopics.get_vector(topic_no=50))
 
+
+def test_utils():
+    # lemmatized = "f:/Corpus/lemmatized_trec_all.dat"
+    lemmatized = "f:/Corpus/new4.dat"
+    from utils import read_content
+    count = 0
+    for text, meta in read_content(lemmatized):
+        count += 1
+        # if count is 10:
+        #     break
+        print(text, meta)
+
+
+def test_verify():
+    lemmatized = "f:/Corpus/lemmatized_trec_all.dat"
+    from utils import verify_content
+    duplicate, total_num = verify_content(lemmatized)
+    print(total_num)
+    print(duplicate)

@@ -1,11 +1,7 @@
 import logging
-import csv
-# import multiprocessing
 
-from os import linesep
 import re
 
-import spacy
 from gensim import utils
 from gensim.corpora.textcorpus import TextDirectoryCorpus
 
@@ -19,8 +15,8 @@ TOKEN_MAX_LEN = 15
 TITLE_TAGS = ["<HEAD>", "<TITLE>", "<TTL>", "<HL>", "<SUBJECT>", "<HEADLINE>", "<TI>"]
 TITLE_END_TAGS = ["</HEAD>", "</TITLE>", "</TTL>", "</HL>", "</SUBJECT>", "</HEADLINE>", "</TI>"]
 
-BODY_TAGS = ["<SUMMARY>", "<LEADPARA>", "<TEXT>"]
-BODY_END_TAGS = ["</SUMMARY>", "</LEADPARA>", "</TEXT>"]
+BODY_TAGS = ["<SUMMARY>", "<LEADPARA>", "<LP>", "<TEXT>"]
+BODY_END_TAGS = ["</SUMMARY>", "</LEADPARA>", "</LP>", "</TEXT>"]
 
 # TODO: strip noise tags and their corresponding content.
 NOISE_TAG = ["<CENTER>", "<FLD001>", "<FDL002>"]
@@ -123,6 +119,7 @@ class TrecCorpus(TextDirectoryCorpus):
         >>> trec = TrecCorpus(path_to_TREC_disk)  # create word->word_id mapping, ~Xh on full corpus
 
     """
+
     def __init__(self, input, dictionary=None, merge_title=True, spacy_tokenizer=True,
                  lines_are_documents=True, min_depth=0, max_depth=None, **kwargs):
         """
@@ -168,12 +165,12 @@ class TrecCorpus(TextDirectoryCorpus):
                                    output_lemma=True, use_stopwords=True)
 
     def _get_texts(self):
-        """Generate documents from corpus.
+        """Inner function to generate documents from corpus.
 
         Yields
         ------
         list of str
-            Document as sequence of tokens (+ (doc_no, title) if self.metadata)
+            Document as sequence of tokens ,(doc_no, title)
 
         """
         self.line_feeder = self.getstream()
@@ -187,6 +184,14 @@ class TrecCorpus(TextDirectoryCorpus):
             yield text, (doc_no, title)
 
     def get_texts(self):
+        """Generate documents from corpus.
+
+        Yields
+        ------
+        list of str
+            Document as sequence of tokens ,(doc_no, title)
+
+        """
         return self.tokenizer.tokenize_pipe(self._get_texts())
         # return self._get_texts()
 
@@ -199,8 +204,8 @@ class TrecCorpus(TextDirectoryCorpus):
             try:
                 self.read_doc("<DOC>", collect_match_line=False, collect_all=False)
 
-                doc_no = self.read_doc("<DOCNO>", collect_match_line=True, collect_all=False)
-                doc_no = doc_no[len("<DOCNO>"): doc_no.find("</DOCNO>", len("<DOCNO>"))].strip()
+                doc_no = self.read_doc("</DOCNO>", collect_match_line=True, collect_all=True)
+                doc_no = doc_no[doc_no.find("<DOCNO>") + len("<DOCNO>"): doc_no.find("</DOCNO>", len("<DOCNO>"))].strip()
 
                 content = self.read_doc("</DOC>", collect_match_line=False, collect_all=True)
                 yield doc_no, content
@@ -208,27 +213,26 @@ class TrecCorpus(TextDirectoryCorpus):
             except StopIteration:
                 break
 
-    def read_doc(self, start_tag, collect_match_line, collect_all):
+    def read_doc(self, tag, collect_match_line, collect_all):
         """gather content of specific tag by append lines
 
-        :param start_tag: tag of wanted content
+        :param tag: tag of wanted content
         :param collect_match_line: If True : gather append the line contains the tag.
         :param collect_all: If True :  gather all lines before the tag.
         :return: gather the content based on the tag
         """
         buffer = ""
-        sep = ""
+        sep = " "
 
         while True:
             line = next(self.line_feeder)
-            if start_tag is not None and line.startswith(start_tag):
+            if tag is not None and line.endswith(tag):
                 if collect_match_line:
                     buffer = buffer + sep + line
                 return buffer
 
             if collect_all:
                 buffer = buffer + sep + line
-                sep = " "
 
     def parse_content(self, content):
         """Extract fine text and title from raw content.
@@ -244,11 +248,11 @@ class TrecCorpus(TextDirectoryCorpus):
             start_tag = BODY_TAGS[i]
             end_tag = BODY_END_TAGS[i]
 
-            h1 = content.find(start_tag)
-            if h1 >= 0:
-                end_pos = content.find(end_tag, h1)
-                start_pos = h1 + len(start_tag)
-                text += strip_tags(content, start_pos, end_pos)
+            h1 = [m.end() for m in re.finditer(start_tag, content)]
+            h2 = [m.start() for m in re.finditer(end_tag, content)]
+
+            for j in range(0, len(h1)):
+                text += strip_tags(content, h1[j], h2[j])
 
         # iterate all title tags, create the title once tag founded.
         for i in range(0, len(TITLE_TAGS)):
@@ -285,11 +289,12 @@ class TrecCorpus(TextDirectoryCorpus):
 
     def save_to_file(self, filename):
         count = 0
-        with open(filename, 'w', buffering=2 ** 10 * 800) as f:
+        with open(filename, 'w') as f:
             for text, (doc_no, title) in self.get_texts():
                 count += 1
                 if count % 1000 == 0:
                     print(count)
                 if title is None:
                     title = ''
-                f.write(doc_no+","+title+","+' '.join(text)+"\n")
+                f.write(doc_no + "|" + title + "|" + ' '.join(text) + "\n")
+        print(count)
