@@ -10,8 +10,9 @@ def test_init():
     path = "f:/Runs/qrels/"
     tq = TrecQrels(path)
     tq.init()
-    print(type(tq.get_doc_list("51")))
-    print(tq.contains("51", "WSJ870807-0086"))
+    print(tq.get_doc_list(51))
+    # print(type(tq.get_doc_list(51)))
+    # print(tq.contains(51, "WSJ870807-0086"))
 
 def test_get_doc_list():
 

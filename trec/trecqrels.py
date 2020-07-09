@@ -66,7 +66,7 @@ class TrecQrels(TextDirectoryCorpus):
         lines = self.getstream()
         for line in lines:
             seg = line.split()
-            topic_no = seg[0]
+            topic_no = int(seg[0])
             doc_no = seg[2]
             is_rel = seg[3]
 
@@ -93,7 +93,7 @@ class TrecQrels(TextDirectoryCorpus):
                     If False: retrieve irrelevant document list.
         :return: A list of document numbers
         """
-        return self.qrels[is_rel][topic_no]
+        return list(self.qrels[is_rel][topic_no])
 
     def contains(self, topic_no, doc_no, is_rel=True):
         """

@@ -141,5 +141,5 @@ class TrecTopics(TextDirectoryCorpus):
         #                               shape=(len(topic_row)-1, vector_length)).toarray()
 
     def get_topic_vector(self, topic_no):
-        assert 50 <= topic_no <= 450
+        assert 51 <= topic_no <= 450
         return self.topics_vecs[self.topic_row_maps[topic_no]]

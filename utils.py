@@ -1,4 +1,5 @@
 import spacy
+import random
 
 SPACY_MODEL = "en_core_web_sm"
 SPACY_DISABLES = ["parser", "ner"]
@@ -18,6 +19,7 @@ class Tokenizer:
     * alpha_only: if True, only keep alphabetical tokens
 
     """
+
     def __init__(self, minimum_len=2, maximum_len=15, lowercase=True,
                  output_lemma=True, use_stopwords=True, extra_stopwords=None,
                  alpha_only=True):
@@ -123,3 +125,24 @@ def verify_content(filename):
             docno_set.add(docno)
         previous = docno
     return duplicate, len(docno_set)
+
+
+def sample_instance(k, instance_list, exclusive_set=None):
+    if exclusive_set is not None:
+        container = list()
+        for instance in instance_list:
+            if instance not in exclusive_set:
+                container.append(instance)
+    else:
+        container = instance_list
+    assert len(container) >= 1
+    if k > len(container):
+        return random.choices(container, k)
+    else:
+        return random.sample(container, k)
+
+
+def sync_shuffle_lists(*args):
+    temp = list(zip(*args))
+    random.shuffle(temp)
+    return zip(*temp)
