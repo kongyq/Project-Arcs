@@ -4,6 +4,8 @@ from trec.trecqrels import TrecQrels
 from trec.trectopics import TrecTopics
 from utils import sample_instance, sync_shuffle_lists
 
+import numpy as np
+
 DOC_RATIO = [0.7, 0.2, 0.1]
 TOPIC_START = 51
 TOPIC_END = 450
@@ -24,7 +26,8 @@ class Arcs:
         self.topics = TrecTopics(topics_path)
         self.doc_list = self.d2v.docvecs.index2entity
 
-        self.training_set = []
+        self.embedding_dim = self.d2v.vector_size
+        self.vocab_size = len(self.d2v.wv.vocab)
 
         self.ts_doc_list = []
         self.ts_topic_list = []
@@ -69,3 +72,35 @@ class Arcs:
             return self.ts_doc_list, [self.topics.get_topic_vector(topic_no) for topic_no in self.ts_topic_list], self.ts_label_list
         else:
             return self.ts_doc_list, self.ts_topic_list, self.ts_label_list
+
+    def get_docvecs(self):
+        return [self.d2v.docvecs[doc] for doc in self.ts_doc_list]
+
+    def get_topicvecs(self, use_topic_vector=False,
+                      include_title=True, include_desc=False, include_narr=False, norm='l2'):
+        if use_topic_vector:
+            self.topics.init()
+            self.topics.vectorize(vocab_dict=self.d2v.wv.vocab,
+                                  include_title=include_title, include_desc=include_desc, include_narr=include_narr,
+                                  norm=norm)
+            return [self.topics.get_topic_vector(topic_no) for topic_no in self.ts_topic_list]
+        else:
+            return self.ts_topic_list
+
+    def get_labels(self):
+        return self.ts_label_list
+
+    def init_topic_vecs(self, include_title=True, include_desc=False, include_narr=False, norm='l2'):
+        self.topics.init()
+        self.topics.vectorize(vocab_dict=self.d2v.wv.vocab,
+                              include_title=include_title, include_desc=include_desc, include_narr=include_narr,
+                              norm=norm)
+
+    def training_set_iterator(self):
+        for i in range(len(self.ts_doc_list)):
+            yield ([self.d2v.docvecs[self.ts_doc_list[i]],
+                   np.array(self.topics.get_topic_vector(self.ts_topic_list[i]), dtype=np.float32)], np.array(self.ts_label_list[i]))
+
+
+    # def close(self):
+    #     self.d2v=None
