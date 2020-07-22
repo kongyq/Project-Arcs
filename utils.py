@@ -1,5 +1,7 @@
 import spacy
 import random
+from gensim.models import Doc2Vec
+from tensorflow.keras import models
 
 SPACY_MODEL = "en_core_web_sm"
 SPACY_DISABLES = ["parser", "ner"]
@@ -146,3 +148,30 @@ def sync_shuffle_lists(*args):
     temp = list(zip(*args))
     random.shuffle(temp)
     return zip(*temp)
+
+
+class ModelLoader:
+    def __init__(self):
+        self.d2v = None
+        self.sbm = None
+
+    def load_d2v(self, model_file):
+        self.d2v = Doc2Vec.load(model_file)
+
+    def load_sbm(self, model_file):
+        self.sbm = models.load_model(model_file)
+
+    def get_docs_list(self):
+        assert self.d2v is not None
+        return self.d2v.docvecs.index2entity
+
+    def get_docvecs_array(self):
+        assert self.d2v is not None
+        return self.d2v.docvecs.vectors_docs
+
+    def get_predict_vec_array(self):
+        assert self.d2v is not None and self.sbm is not None
+        return self.sbm.predict(self.get_docvecs_array())
+
+
+# def save_predict_vecs(doc2vec_model, sbm_model, vecs_file):
