@@ -4,22 +4,29 @@ from tensorflow import keras
 
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, input_list1, input_list2, labels, batch_size=32, dim=1000,
+    def __init__(self, *input_data, labels=None, batch_size=32, dim=1000,
                  shuffle=True):
         'Initialization'
         self.dim = dim
         self.batch_size = batch_size
         self.labels = labels
-        self.list1 = input_list1
-        self.list2 = input_list2
+        # self.list1 = input_list1
+        # self.list2 = input_list2
+        self.data = input_data
+        self.data_dim = len(input_data)
+        self.length = len(input_data[0])
+        assert 1 <= self.data_dim
+        if self.labels is not None:
+            assert len(self.labels) == self.length
+
         self.shuffle = shuffle
 
-        self.indexes = np.arange(len(self.labels))
+        self.indexes = np.arange(self.length)
         self.on_epoch_end()
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.list1) / self.batch_size))
+        return int(np.floor(self.length / self.batch_size))
 
     def __getitem__(self, index):
         'Generate one batch of data'
@@ -42,10 +49,21 @@ class DataGenerator(keras.utils.Sequence):
         # X = np.empty((self.batch_size, *self.dim, self.n_channels))
         # y = np.empty(self.batch_size, dtype=int)
 
-        output1 = np.array([self.list1[i] for i in indexes], dtype='float32')
-        output2 = np.array([self.list2[i] for i in indexes], dtype='float32')
+        inputs = list()
+        for data in self.data:
+            inputs.append(np.array([data[i] for i in indexes], dtype='float32'))
 
-        return [output1, output2], np.array([self.labels[i] for i in indexes], dtype=int)
+        if self.labels is not None:
+            return inputs, np.array([self.labels[i] for i in indexes], dtype=int)
+        else:
+            return inputs
+
+        # if self.data_dim == 1:
+        #     return np.array([])
+        # output1 = np.array([self.list1[i] for i in indexes], dtype='float32')
+        # output2 = np.array([self.list2[i] for i in indexes], dtype='float32')
+        #
+        # return [output1, output2], np.array([self.labels[i] for i in indexes], dtype=int)
         #
         # # Generate data
         # for i, ID in enumerate(indexes):

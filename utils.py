@@ -165,13 +165,13 @@ class ModelLoader:
         assert self.d2v is not None
         return self.d2v.docvecs.index2entity
 
-    def get_docvecs_array(self):
+    def get_docvecs(self):
         assert self.d2v is not None
         return self.d2v.docvecs.vectors_docs
 
     def get_predict_vec_array(self):
         assert self.d2v is not None and self.sbm is not None
-        return self.sbm.predict(self.get_docvecs_array())
+        return self.sbm.predict(self.get_docvecs())
 
 
 # def save_predict_vecs(doc2vec_model, sbm_model, vecs_file):

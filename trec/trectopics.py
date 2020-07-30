@@ -107,7 +107,7 @@ class TrecTopics(TextDirectoryCorpus):
                 self.oov.setdefault(topic_no, set()).add(term)
         return index_list
 
-    def vectorize(self, vocab_dict, include_title=True, include_desc=False, include_narr=False, norm='l1'):
+    def vectorize(self, vocab_dict, include_title=True, include_desc=False, include_narr=False, norm='l2'):
         assert include_title or include_desc or include_narr is True
 
         vector_length = len(vocab_dict)
