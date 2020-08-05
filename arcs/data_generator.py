@@ -5,7 +5,7 @@ from tensorflow import keras
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, *input_data, labels=None, batch_size=32, dim=1000,
-                 shuffle=True):
+                 shuffle=True, sec_input_const=False):
         'Initialization'
         self.dim = dim
         self.batch_size = batch_size
@@ -20,6 +20,7 @@ class DataGenerator(keras.utils.Sequence):
             assert len(self.labels) == self.length
 
         self.shuffle = shuffle
+        self.constant = sec_input_const
 
         self.indexes = np.arange(self.length)
         self.on_epoch_end()
@@ -34,9 +35,10 @@ class DataGenerator(keras.utils.Sequence):
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
 
         # Generate data
-        X, y = self.__data_generation(indexes)
+        # X, y = self.__data_generation(indexes)
 
-        return X, y
+        # return X, y
+        return self.__data_generation(indexes)
 
     def on_epoch_end(self):
         'Updates indexes after each epoch'
@@ -50,8 +52,13 @@ class DataGenerator(keras.utils.Sequence):
         # y = np.empty(self.batch_size, dtype=int)
 
         inputs = list()
-        for data in self.data:
-            inputs.append(np.array([data[i] for i in indexes], dtype='float32'))
+
+        if self.constant:
+            inputs.append(np.array([self.data[0][i] for i in indexes], dtype='float32'))
+            inputs.append(np.array([self.data[1].tolist()] * len(indexes), dtype='float32'))
+        else:
+            for data in self.data:
+                inputs.append(np.array([data[i] for i in indexes], dtype='float32'))
 
         if self.labels is not None:
             return inputs, np.array([self.labels[i] for i in indexes], dtype=int)

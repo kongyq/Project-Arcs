@@ -175,3 +175,29 @@ class ModelLoader:
 
 
 # def save_predict_vecs(doc2vec_model, sbm_model, vecs_file):
+
+def create_trec_runs(runs_file, rank_dict, topic_no, top=-1):
+    count = 0
+    sep = " "
+    with open(runs_file, 'w') as fp:
+        for key, value in rank_dict:
+            if top is not -1 and count >= top:
+                return
+            fp.write(sep.join([str(topic_no), "Q0", key, str(count), str(value[0]),  "test", "\n"]))
+            count += 1
+
+
+def nonzero_entity_check(vector):
+    zero_epsilon = 1e-10
+    for entity in vector:
+        return None
+
+
+def docs_filter(unfiltered_doc_list, valid_prefix):
+    filtered_doc_list = list()
+    for doc in unfiltered_doc_list:
+        for prefix in valid_prefix:
+            if doc.startswith(prefix):
+                filtered_doc_list.append(doc)
+                break
+    return filtered_doc_list
